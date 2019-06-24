@@ -78,6 +78,8 @@ $router = isset($_REQUEST['router']) ? trim($_REQUEST['router']) : FALSE;
 $protocol = isset($_REQUEST['protocol']) ? trim($_REQUEST['protocol']) : FALSE;
 $command = isset($_REQUEST['command']) ? trim($_REQUEST['command']) : FALSE;
 $query = isset($_REQUEST['query']) ? trim($_REQUEST['query']) : FALSE;
+$mask = isset($_REQUEST['mask']) ? trim($_REQUEST['mask']) : FALSE;
+$isValid = filter_var($query, FILTER_VALIDATE_IP);
 
 if ($command != 'graph' OR !isset($_REQUEST['render']) OR !isset($_CONFIG['routers'][$router]))
 {
@@ -122,6 +124,17 @@ if ($command != 'graph' OR !isset($_REQUEST['render']) OR !isset($_CONFIG['route
 					loading.style.display = 'none';
 				}
 			}
+			function Checkradiobutton() {
+  			      if(document.getElementById('bgp').checked || document.getElementById('trace').checked || document.getElementById('ping').checked) {
+                		document.getElementById('mask').disabled=true;
+                		document.getElementById('mask').required=false;
+                		document.getElementById("mask").value = "";
+    				}else{
+        				document.getElementById('mask').disabled=false;
+        				document.getElementById('mask').required=true;
+        				document.getElementById("mask").value = "";
+    				}
+			}
 		//-->
 		</script>
 	</head>
@@ -134,9 +147,28 @@ if ($command != 'graph' OR !isset($_REQUEST['render']) OR !isset($_CONFIG['route
 <?php
 flush();
 }
-
+if($_POST) {
+	if ($isValid){
 $queries = array
 (
+         'frr' => array
+         (
+                  'ipv4' => array
+                                        (
+                                                'bgp' => "show ip bgp ".trim($_POST['query'])."",
+                                                'bgpLP' => "show ip bgp ".trim($_POST['query'])."/".trim($_POST['mask'])." longer-prefixes",
+                                                'ping' => "ping -c 4 ".trim($_POST['query'])."",
+                                                'trace' => "traceroute ".trim($_POST['query'])."",
+                                        ),
+                  'ipv6' => array
+                                        (
+                                                'bgp' => "show ip bgp ipv6 unicast ".trim($_POST['query'])."",
+                                                'bgpLP' => "show ip bgp ipv6 unicast ".trim($_POST['query'])."/".trim($_POST['mask'])." longer-prefixes",
+                                                'ping' => "ping6 -c 4 ".trim($_POST['query'])."",
+                                                'trace' => "traceroute6 ".trim($_POST['query'])."",
+                                        )
+                        ),
+	
 	'ios' => array
 	(
 		'ipv4' => array
@@ -272,6 +304,13 @@ $queries = array
 		)
 	),
 );
+		
+
+else {
+                echo "<script>alert('IP invalid format!');</script>";
+        }
+}
+		
 
 if (isset($_CONFIG['routers'][$router]) AND 
 	isset($queries[$_CONFIG['routers'][$router]['os']][$protocol]) AND
@@ -292,7 +331,7 @@ if (isset($_CONFIG['routers'][$router]) AND
 		isset($_CONFIG['routers'][$router]['pingtraceurl']) AND 
 		$_CONFIG['routers'][$router]['pingtraceurl'] != FALSE)
 	{
-		$url = $_CONFIG['routers'][$router]['pingtraceurl'];
+		$url = 'telnet://$USER:$PASSWORD@$IP:PORT';
 	}
 
 	$url = @parse_url($url);
@@ -363,8 +402,8 @@ if (isset($_CONFIG['routers'][$router]) AND
 	}
 	else if ($query != '' AND $command != 'graph')
 	{
-		print '<div class="center"><p class="warning">No parameter needed.</p></div>';
-		print '<hr>';
+		#print '<div class="center"><p class="warning">No parameter needed.</p></div>';
+		#print '<hr>';
 	}
 
 	if ($exec)
@@ -502,27 +541,29 @@ else
 
 // HTML form
 ?>
-		<form method="get" action="">
+		<form method="get" action=""  autocomplete="off">
 		<div class="center">
 			<table class="form" cellpadding="2" cellspacing="2">
-				<tr><th>Type of Query</th><th>Additional parameters</th><th>Node</th></tr>
+				<tr><th>Type of Query</th><th>Additional parameters (IP/mask)</th><th>Node</th></tr>
 				<tr><td>
 				<table border="0" cellpadding="2" cellspacing="2">
-					<tr><td><input type="radio" name="command" id="bgp" value="bgp" checked="checked"></td><td><label for="bgp">bgp</label></td></tr>
-					<tr><td><input type="radio" name="command" id="advertised-routes" value="advertised-routes"></td><td><label for="advertised-routes">bgp&nbsp;advertised-routes</label></td></tr>
-					<tr><td><input type="radio" name="command" id="summary" value="summary"></td><td><label for="summary">bgp&nbsp;summary</label></td></tr>
-					<tr><td><input type="radio" name="command" id="graph" value="graph"></td><td><label for="graph">bgp graph</label></td></tr>
-					<tr><td><input type="radio" name="command" id="trace" value="trace"></td><td><label for="trace">traceroute</label></td></tr>
-					<tr><td><input type="radio" name="command" id="ping" value="ping"></td><td><label for="ping">ping</label></td></tr>
-					<tr><td></td><td style="padding-top:10px">
-					<select name="protocol">
-						<option value="ipv4">IPv4</option>
-						<option value="ipv6">IPv6</option>
-					</select></td></tr>
-				</table></td>
-				<td align="center"><input name="query" size="30"></td>
-				<td align="right">
-				<select name="router" style="min-width: 180px">
+				 <tr><td><input type="radio" name="command" id="bgp" value="bgp" onclick="Checkradiobutton()" checked="checked"></td>
+				 <td><label for="bgp">show&nbsp;ip&nbsp;bgp</label></td></tr>
+				 <tr><td><input type="radio" name="command" id="bgpLP" value="bgpLP" onclick="Checkradiobutton()"></td>
+				 <td><label for="bgp">show&nbsp;ip&nbsp;bgp&nbsp;longer-prefixes</label></td></tr>
+				 <tr><td><input type="radio" name="command" id="trace" value="trace" onclick="Checkradiobutton()"></td>
+				 <td><label for="trace">traceroute</label></td></tr>
+				 <tr><td><input type="radio" name="command" id="ping" value="ping" onclick="Checkradiobutton()"></td>
+				 <td><label for="ping">ping</label></td></tr>
+				 <tr><td></td><td style="padding-top:10px">
+				 <select name="protocol">
+					<option value="ipv4">IPv4</option>
+					<option value="ipv6">IPv6</option>
+				 </select></td></tr>
+				 </table></td>
+ <td align="center"><input name="query" size="30" required="yes" type="text">
+ <input name="mask" id="mask" size="2" type="number" disabled="true" min="1" style="width: 40px;"></td>
+ <td align="right">				<select name="router" style="min-width: 180px">
 <?php foreach ($routers as $group => $group_data): ?>
 <?php if ($group != ''): ?>
 					<optgroup label="<?php print htmlspecialchars($group) ?>">
