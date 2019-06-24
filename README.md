@@ -1,3 +1,9 @@
+## Fork to use FRRouting 
+- Only IP query
+- Enable longer-prefixes
+
+###########################################################################################
+
 ## HSDN PHP Looking Glass
 PHP Version of BGP Looking Glass script, based on the Perl sources: https://github.com/Cougar/lg
 
