@@ -331,7 +331,7 @@ if (isset($_CONFIG['routers'][$router]) AND
 		isset($_CONFIG['routers'][$router]['pingtraceurl']) AND 
 		$_CONFIG['routers'][$router]['pingtraceurl'] != FALSE)
 	{
-		$url = 'telnet://$USER:$PASSWORD@$IP:PORT';
+		$url = $_CONFIG['routers'][$router]['pingtraceurl'];
 	}
 
 	$url = @parse_url($url);
